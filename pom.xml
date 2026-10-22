@@ -22,22 +22,9 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <distrimarket-common.version>1.0.0-SNAPSHOT</distrimarket-common.version>
-        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <distrimarket-common.version>1.0.1-SNAPSHOT</distrimarket-common.version>
         <org.springdoc.version>2.5.0</org.springdoc.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <!-- 1. Módulo común: entidades (Usuario, Rol, Persona, Empleado), DTOs y migraciones -->
@@ -84,11 +71,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- 6. Registro en Eureka y health/info -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
-        </dependency>
+        <!-- 6. Health/info -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
