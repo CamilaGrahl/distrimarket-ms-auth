@@ -1,0 +1,11 @@
+# IntelliJ IDEA (incluye las configuraciones de ejecución con credenciales locales)
+/.idea/
+*.iml
+
+# Build y logs locales
+/target/
+/logs/
+
+# Variables de entorno locales
+.env
+.env.*

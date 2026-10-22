@@ -1,0 +1,151 @@
+server:
+  port: ${SERVER_PORT:8084}
+  servlet:
+    context-path: /auth
+  # Nunca se envían trazas al cliente; los errores salen con el formato de ApiErrorResponse.
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: distrimarket-auth
+  devtools:
+    restart:
+      enabled: false
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pos_db}?sslmode=${DB_SSL_MODE:require}&prepareThreshold=${DB_PREPARE_THRESHOLD:0}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
+      minimum-idle: ${DB_POOL_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:none}
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        # Carga los roles de varios usuarios de un listado en una sola consulta.
+        default_batch_fetch_size: ${JPA_BATCH_FETCH_SIZE:50}
+
+  liquibase:
+    enabled: ${LIQUIBASE_ENABLED:true}
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: public
+
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+
+  # Servidor Redis compartido por todos los microservicios del grupo.
+  data:
+    web:
+      pageable:
+        default-page-size: ${PAGINATION_DEFAULT_PAGE_SIZE:10}
+        max-page-size: ${PAGINATION_MAX_PAGE_SIZE:100}
+    redis:
+      # 127.0.0.1 y no localhost: en Windows localhost resuelve primero a IPv6 (::1) y Redis en WSL/Docker escucha en IPv4.
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${REDIS_TIMEOUT:2s}
+
+# ---------------------------------------------------------------
+# Seguridad
+# ---------------------------------------------------------------
+security:
+  jwt:
+    # Clave HMAC (HS256) compartida con el gateway y los microservicios; mínimo 32 caracteres.
+    # El valor por defecto es solo para desarrollo: en otro entorno se define JWT_SECRET.
+    secret: ${JWT_SECRET:distrimarket-dev-secret-cambiar-en-produccion-2026}
+    issuer: ${JWT_ISSUER:distrimarket-auth}
+    # Vigencia del token emitido en el login.
+    expiration: ${JWT_EXPIRATION:60m}
+  password:
+    # Costo de BCrypt (4 a 31); cada punto duplica el tiempo de cifrado.
+    bcrypt-strength: ${BCRYPT_STRENGTH:10}
+  # Rutas sin token (relativas al context-path /auth).
+  public-paths:
+    - /login
+    - /actuator/health/**
+    - /actuator/info
+    - /openapi.yaml
+    - /swagger-ui.html
+    - /swagger-ui/**
+    - /v3/api-docs/**
+    - /error
+  # Reglas por URL, en orden; lo que no coincide solo exige un token válido.
+  rules:
+    - pattern: /usuarios/**
+      roles: [ADMIN]
+    - pattern: /roles/**
+      roles: [ADMIN]
+  # Primer administrador: se crea al arrancar solo si no existe ningún usuario ADMIN activo.
+  bootstrap-admin:
+    enabled: ${AUTH_BOOTSTRAP_ADMIN:true}
+    username: ${AUTH_ADMIN_USERNAME:admin}
+    password: ${AUTH_ADMIN_PASSWORD:Admin123!}
+    nombre-completo: ${AUTH_ADMIN_NOMBRE:Administrador del sistema}
+    ci: ${AUTH_ADMIN_CI:0000001}
+
+# ---------------------------------------------------------------
+# Caché (Redis). Cada dominio es una sección que se invalida por separado.
+# TTL 0 = persistente (no vence; se actualiza o se borra al cambiar el dato).
+# ---------------------------------------------------------------
+distrimarket:
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    key-prefix: ${CACHE_KEY_PREFIX:distrimarket:auth}
+    default-ttl: ${CACHE_DEFAULT_TTL:10m}
+    scan-batch-size: ${CACHE_SCAN_BATCH_SIZE:100}
+    domains:
+      # Datos públicos del usuario (sin contraseña). Las credenciales nunca se cachean.
+      usuario: ${CACHE_TTL_USUARIO:30m}
+      # Id de cada rol por nombre: catálogo fijo cargado por la migración.
+      rol: ${CACHE_TTL_ROL:0}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /auth/openapi.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  file:
+    name: ${LOG_FILE:logs/distrimarket-ms-auth.log}
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.distrimarket: ${LOG_LEVEL_APP:INFO}
+    com.distrimarket.ms.auth.service: ${LOG_LEVEL_SERVICE:DEBUG}
+    # Operaciones de caché (GET/SET/DELETE) registradas por LoggingCache.
+    com.distrimarket.ms.auth.config.LoggingCache: ${LOG_LEVEL_CACHE:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    status-page-url-path: /auth/actuator/info
+    health-check-url-path: /auth/actuator/health
