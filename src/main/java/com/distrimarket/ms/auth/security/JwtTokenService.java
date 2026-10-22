@@ -3,6 +3,7 @@ package com.distrimarket.ms.auth.security;
 import com.distrimarket.commons.dto.TokenInfoDTO;
 import com.distrimarket.commons.dto.TokenResponseDTO;
 import com.distrimarket.commons.enums.RolUsuario;
+import com.distrimarket.commons.security.JwtClaims;
 import com.distrimarket.ms.auth.config.SecurityProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

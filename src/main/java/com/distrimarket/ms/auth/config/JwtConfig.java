@@ -1,6 +1,6 @@
 package com.distrimarket.ms.auth.config;
 
-import com.distrimarket.ms.auth.security.JwtClaims;
+import com.distrimarket.commons.security.JwtClaims;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
