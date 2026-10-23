@@ -138,3 +138,15 @@ logging:
     com.distrimarket.ms.auth.config.LoggingCache: ${LOG_LEVEL_CACHE:INFO}
     org.springframework.security: ${LOG_LEVEL_SECURITY:INFO}
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    status-page-url-path: /auth/actuator/info
+    health-check-url-path: /auth/actuator/health
+
