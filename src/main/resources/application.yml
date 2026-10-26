@@ -20,9 +20,16 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
+      # El pooler de Supabase en modo sesión admite 15 clientes en total:
+      # 4 servicios x 3 conexiones deja margen para Liquibase y tareas puntuales.
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:3}
       minimum-idle: ${DB_POOL_MIN_IDLE:1}
       connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT_MS:240000}
+      # Supabase cierra conexiones ociosas antes que el máximo por defecto (30 min).
+      # Renovar cada 5 min y mantener vivas las ociosas evita el primer login lento.
+      max-lifetime: ${DB_MAX_LIFETIME_MS:300000}
+      keepalive-time: ${DB_KEEPALIVE_MS:120000}
 
   jpa:
     open-in-view: false
@@ -31,8 +38,8 @@ spring:
     show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        # Carga los roles de varios usuarios de un listado en una sola consulta.
-        default_batch_fetch_size: ${JPA_BATCH_FETCH_SIZE:50}
+        # Carga los roles y personas de una página completa en una sola consulta.
+        default_batch_fetch_size: ${JPA_BATCH_FETCH_SIZE:100}
 
   liquibase:
     enabled: ${LIQUIBASE_ENABLED:true}
@@ -145,7 +152,10 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
   instance:
-    prefer-ip-address: true
+    # En desarrollo todo corre en la misma máquina: registrar "localhost" evita
+    # que un cambio de IP (Wi-Fi/DHCP) deje las rutas lb:// apuntando a una IP muerta.
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     instance-id: ${spring.application.name}:${server.port}
     status-page-url-path: /auth/actuator/info
     health-check-url-path: /auth/actuator/health

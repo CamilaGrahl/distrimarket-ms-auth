@@ -34,7 +34,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Administración de usuarios. Cada operación pública mantiene la caché del dominio "usuario":
@@ -84,8 +88,10 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public Page<UsuarioResponseDTO> listar(String query, Pageable pageable) {
-        Page<UsuarioResponseDTO> pagina = usuarioRepository.findAll(busqueda(query), conOrdenPermitido(pageable))
-                .map(this::toResponse);
+        Page<Usuario> usuarios = usuarioRepository.findAll(busqueda(query), conOrdenPermitido(pageable));
+        // Una sola consulta para todos los empleados de la página, en vez de una por usuario.
+        Map<Long, Empleado> empleados = empleadosPorPersona(usuarios.getContent());
+        Page<UsuarioResponseDTO> pagina = usuarios.map(usuario -> toResponse(usuario, empleados.get(personaId(usuario))));
         // La página no se cachea (depende de filtros y orden); cada usuario sí, por su id.
         domainCache.putAll(CacheConfig.USUARIO, pagina.getContent(), UsuarioResponseDTO::getIdUsuario);
         return pagina;
@@ -168,10 +174,29 @@ public class UsuarioService {
     }
 
     private UsuarioResponseDTO toResponse(Usuario usuario) {
-        Persona persona = usuario.getPersona();
-        Empleado empleado = persona == null ? null
-                : empleadoRepository.findFirstByPersona_Id(persona.getId()).orElse(null);
+        return toResponse(usuario, usuario.getPersona() == null ? null
+                : empleadoRepository.findFirstByPersona_Id(usuario.getPersona().getId()).orElse(null));
+    }
+
+    private UsuarioResponseDTO toResponse(Usuario usuario, Empleado empleado) {
         return mapper.toResponse(usuario, empleado);
+    }
+
+    private Map<Long, Empleado> empleadosPorPersona(Collection<Usuario> usuarios) {
+        Set<Long> idsPersona = usuarios.stream()
+                .map(UsuarioService::personaId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (idsPersona.isEmpty()) {
+            return Map.of();
+        }
+        return empleadoRepository.findByPersona_IdIn(idsPersona).stream()
+                .collect(Collectors.toMap(empleado -> empleado.getPersona().getId(),
+                        Function.identity(), (primero, segundo) -> primero));
+    }
+
+    private static Long personaId(Usuario usuario) {
+        return usuario.getPersona() == null ? null : usuario.getPersona().getId();
     }
 
     /** El usuario se asocia a una persona; si se indica un empleado, se usa su persona. */

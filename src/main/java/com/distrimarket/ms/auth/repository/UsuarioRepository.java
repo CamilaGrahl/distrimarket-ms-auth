@@ -2,6 +2,9 @@ package com.distrimarket.ms.auth.repository;
 
 import com.distrimarket.commons.entity.Usuario;
 import com.distrimarket.commons.enums.RolUsuario;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,6 +21,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
 
     @EntityGraph(attributePaths = {"roles", "persona"})
     Optional<Usuario> findWithRolesById(Long id);
+
+    /** Listado paginado con la persona ya cargada; evita una consulta extra por página. */
+    @Override
+    @EntityGraph(attributePaths = "persona")
+    Page<Usuario> findAll(Specification<Usuario> spec, Pageable pageable);
 
     @Query("select count(distinct u) from Usuario u join u.roles r where r.nombre = :rol")
     long countByRol(@Param("rol") RolUsuario rol);
