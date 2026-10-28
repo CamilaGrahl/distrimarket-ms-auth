@@ -45,6 +45,14 @@ public class JwtTokenService {
     }
 
     public TokenResponseDTO emitir(UsuarioAutenticado usuario, Long idEmpleado) {
+        return emitir(usuario, idEmpleado, null);
+    }
+
+    /**
+     * @param idDeposito depósito asignado al empleado: los microservicios lo usan para que vendedor,
+     *                   comprador y depositero operen siempre sobre su depósito.
+     */
+    public TokenResponseDTO emitir(UsuarioAutenticado usuario, Long idEmpleado, Long idDeposito) {
         Instant ahora = clock.instant();
         Instant vence = ahora.plus(jwtProperties.expiration());
         List<String> roles = usuario.roles().stream().map(Enum::name).toList();
@@ -63,6 +71,9 @@ public class JwtTokenService {
         if (idEmpleado != null) {
             claims.claim(JwtClaims.EMPLEADO_ID, idEmpleado);
         }
+        if (idDeposito != null) {
+            claims.claim(JwtClaims.DEPOSITO_ID, idDeposito);
+        }
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims.build())).getTokenValue();
@@ -77,6 +88,7 @@ public class JwtTokenService {
         response.setRoles(usuario.roles());
         response.setIdPersona(usuario.idPersona());
         response.setIdEmpleado(idEmpleado);
+        response.setIdDeposito(idDeposito);
         return response;
     }
 
@@ -88,6 +100,7 @@ public class JwtTokenService {
         info.setRoles(roles(jwt));
         info.setIdPersona(numero(jwt, JwtClaims.PERSONA_ID));
         info.setIdEmpleado(numero(jwt, JwtClaims.EMPLEADO_ID));
+        info.setIdDeposito(numero(jwt, JwtClaims.DEPOSITO_ID));
         info.setEmitidoEn(jwt.getIssuedAt() == null ? null : OffsetDateTime.ofInstant(jwt.getIssuedAt(), ZoneOffset.UTC));
         info.setExpiraEn(jwt.getExpiresAt() == null ? null : OffsetDateTime.ofInstant(jwt.getExpiresAt(), ZoneOffset.UTC));
         return info;

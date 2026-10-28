@@ -31,6 +31,10 @@ public class UsuarioMapper {
         if (empleado != null) {
             dto.setIdEmpleado(empleado.getId());
             dto.setCargo(empleado.getCargo());
+            if (empleado.getDeposito() != null) {
+                dto.setIdDeposito(empleado.getDeposito().getId());
+                dto.setNombreDeposito(empleado.getDeposito().getNombre());
+            }
         }
         return dto;
     }

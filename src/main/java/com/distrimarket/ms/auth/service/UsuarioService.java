@@ -164,8 +164,13 @@ public class UsuarioService {
     /** Empleado activo de la persona, para incluir su id en el token. */
     @Transactional(readOnly = true)
     public Long idEmpleadoDePersona(Long idPersona) {
-        return idPersona == null ? null
-                : empleadoRepository.findFirstByPersona_Id(idPersona).map(Empleado::getId).orElse(null);
+        return empleadoDePersona(idPersona).map(Empleado::getId).orElse(null);
+    }
+
+    /** Empleado de la persona con su depósito (una sola consulta), para el token. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<Empleado> empleadoDePersona(Long idPersona) {
+        return idPersona == null ? java.util.Optional.empty() : empleadoRepository.findFirstByPersona_Id(idPersona);
     }
 
     private Usuario buscar(Long id) {
