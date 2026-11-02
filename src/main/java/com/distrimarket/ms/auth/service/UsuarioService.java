@@ -8,6 +8,7 @@ import com.distrimarket.commons.entity.Persona;
 import com.distrimarket.commons.entity.Rol;
 import com.distrimarket.commons.entity.Usuario;
 import com.distrimarket.commons.enums.RolUsuario;
+import com.distrimarket.commons.service.Paginas;
 import com.distrimarket.ms.auth.config.CacheConfig;
 import com.distrimarket.ms.auth.config.DomainCache;
 import com.distrimarket.ms.auth.exception.ConflictException;
@@ -23,7 +24,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 public class UsuarioService {
 
     private static final Set<String> ORDENES_PERMITIDOS = Set.of("id", "username", "fechaCreacion");
+    private static final Sort ORDEN_POR_DEFECTO = Sort.by(Sort.Direction.ASC, "id");
 
     private final UsuarioRepository usuarioRepository;
     private final PersonaRepository personaRepository;
@@ -88,7 +89,8 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public Page<UsuarioResponseDTO> listar(String query, Pageable pageable) {
-        Page<Usuario> usuarios = usuarioRepository.findAll(busqueda(query), conOrdenPermitido(pageable));
+        Page<Usuario> usuarios = usuarioRepository.findAll(busqueda(query),
+                Paginas.conOrdenPermitido(pageable, ORDENES_PERMITIDOS, ORDEN_POR_DEFECTO));
         // Una sola consulta para todos los empleados de la página, en vez de una por usuario.
         Map<Long, Empleado> empleados = empleadosPorPersona(usuarios.getContent());
         Page<UsuarioResponseDTO> pagina = usuarios.map(usuario -> toResponse(usuario, empleados.get(personaId(usuario))));
@@ -265,16 +267,5 @@ public class UsuarioService {
                     builder.like(builder.lower(persona.get("ci")), pattern),
                     builder.like(builder.lower(persona.get("ruc")), pattern));
         };
-    }
-
-    private static Pageable conOrdenPermitido(Pageable pageable) {
-        for (Sort.Order order : pageable.getSort()) {
-            if (!ORDENES_PERMITIDOS.contains(order.getProperty())) {
-                throw new IllegalArgumentException("No se puede ordenar por '" + order.getProperty()
-                        + "'. Valores permitidos: " + ORDENES_PERMITIDOS + ".");
-            }
-        }
-        return pageable.getSort().isSorted() ? pageable
-                : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by("id"));
     }
 }
