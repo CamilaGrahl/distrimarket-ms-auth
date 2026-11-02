@@ -45,7 +45,11 @@ public class AuthService {
         }
         UsuarioAutenticado usuario = (UsuarioAutenticado) authentication.getPrincipal();
         log.info("Inicio de sesión correcto de '{}'", usuario.username());
-        return jwtTokenService.emitir(usuario, usuarioService.idEmpleadoDePersona(usuario.idPersona()));
+        // El token lleva el empleado y su depósito: cada microservicio opera sobre ese depósito.
+        var empleado = usuarioService.empleadoDePersona(usuario.idPersona());
+        return jwtTokenService.emitir(usuario,
+                empleado.map(e -> e.getId()).orElse(null),
+                empleado.map(e -> e.getDeposito() != null ? e.getDeposito().getId() : null).orElse(null));
     }
 
     /** Además de la firma y la vigencia (ya verificadas), confirma que el usuario siga activo. */
