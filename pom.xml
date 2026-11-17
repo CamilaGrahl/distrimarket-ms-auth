@@ -16,6 +16,7 @@
     <version>0.0.1</version>
     <name>distrimarket-auth</name>
     <description>Microservicio de seguridad: usuarios, roles y emisión/validación de tokens JWT</description>
+    <packaging>war</packaging>
 
     <properties>
         <java.version>21</java.version>
@@ -121,9 +122,17 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- 10. TOMCAT -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <finalName>auth</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
